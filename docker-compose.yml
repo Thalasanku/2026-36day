@@ -1,0 +1,58 @@
+services:
+        mongodb:
+            image: mongo:latest
+            ports: 
+            - "27017:27017"
+            volumes: 
+            - mongo-data:/data/db
+            healthcheck: 
+                 test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+                 interval: 10s
+                 timeout: 5s
+                 retries: 3
+                 start_period: 15s
+    #Backend service
+        server:
+          build: 
+            context: /home/sanket/docker_practice/compose-basics/36day/docker_full_project/mern-stack-example/mern/server
+            dockerfile: Dockerfile
+          ports:
+             - "5050:5050"
+          environment:
+             - ATLAS_URI=mongodb://mongodb:27017/employees   
+             - PORT=5050
+          healthcheck:
+               test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5050/record"]
+               interval: 10s
+               timeout: 5s
+               retries: 3
+               start_period: 10s
+          depends_on:
+             mongodb:
+              condition: service_healthy
+
+    #FrontEnd Service
+        client:
+          build: 
+               context: /home/sanket/docker_practice/compose-basics/36day/docker_full_project/mern-stack-example/mern/client
+               dockerfile: Dockerfile
+          ports:
+                     - "5173:5173"
+               
+          depends_on:
+              server:
+               condition: service_healthy
+          healthcheck: 
+              test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173"]
+              interval: 10s
+              timeout: 5s
+              retries: 3
+              start_period: 5s
+
+
+volumes:
+   mongo-data: 
+    driver: local
+
+
+
